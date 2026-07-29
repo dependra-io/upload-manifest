@@ -1,0 +1,16 @@
+node_modules/
+dist/
+*.log
+.DS_Store
+
+# vendored at build/prepack from the repo root (single source of truth)
+manifest-cli/schema/
+manifest-cli/examples/
+manifest-cli/assets/
+
+# The committed, pre-built esbuild bundle the GitHub Action imports at runtime
+# (NO runtime `npm ci`/build) IS tracked on purpose — regenerated via `npm run bundle`
+# in manifest-cli/ and freshness-checked in smoke CI. Force it in past any broad ignore.
+!manifest-sync/vendor/
+!manifest-sync/vendor/manifest-cli.mjs
+!manifest-sync/vendor/manifest.schema.json

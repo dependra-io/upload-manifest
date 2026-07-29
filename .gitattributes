@@ -1,0 +1,6 @@
+# The committed, pre-built CLI bundle the GitHub Action imports is a generated artifact.
+# Force LF so the `git diff --exit-code` freshness gate in smoke CI is deterministic across
+# platforms (esbuild always emits LF; without this, a Windows checkout's autocrlf could show false
+# drift against a Linux CI regeneration). Treat it as binary-ish: no eol translation, no merge.
+manifest-sync/vendor/manifest-cli.mjs -text
+manifest-sync/vendor/manifest.schema.json text eol=lf

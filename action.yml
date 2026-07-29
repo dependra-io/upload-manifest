@@ -1,0 +1,103 @@
+name: Dependra Manifest Sync
+description: >-
+  Validate a Dependra landscape manifest, bundle it, authenticate (GitHub OIDC → tenant-scoped
+  Dependra key, or an api-key fallback), and sync it to Dependra. Applies ONLY on a release or a
+  push to the default branch; every other trigger (feature-branch push, workflow_dispatch, any PR)
+  is a dry-run that posts the diff as a PR comment.
+author: Dependra
+
+branding:
+  icon: git-merge
+  color: purple
+
+inputs:
+  manifest:
+    description: Path to the root manifest YAML.
+    required: false
+    default: .dependra/manifest.yaml
+  dependra-url:
+    description: >-
+      Base URL of the Dependra instance. Defaults to the hosted service; override only when
+      running against a self-hosted Dependra.
+    required: false
+    default: https://dependra.io
+  tenant-id:
+    description: >-
+      Target tenant id (GUID). The token exchange and ingest are tenant-addressed — this is the
+      tenant the manifest syncs into.
+    required: true
+  mode:
+    description: >-
+      dry-run | apply. When unset, computed from the event: apply ONLY on a release or a push to the
+      default branch; everything else (feature-branch push, workflow_dispatch, any PR) → dry-run.
+    required: false
+    default: ''
+  api-key:
+    description: >-
+      Optional Dependra API key (dep_...) with the manifest-sync scope. When provided it is used
+      INSTEAD of the OIDC exchange. Store it as a secret; it is masked in logs.
+    required: false
+    default: ''
+  audience:
+    description: >-
+      OIDC audience requested for the GitHub Actions token. Must match Dependra's configured
+      audience.
+    required: false
+    default: https://dependra.io
+  fail-on:
+    description: >-
+      Validation severity that fails the step — error (default) or warning.
+    required: false
+    default: error
+  github-token:
+    description: >-
+      Token used to upsert the PR comment on pull_request. Defaults to the job's GITHUB_TOKEN;
+      needs `pull-requests: write`.
+    required: false
+    default: ${{ github.token }}
+  allow-pull-request-target:
+    description: >-
+      DANGEROUS. When true, permit the OIDC token exchange under a `pull_request_target` event.
+      pull_request_target runs in the trusted base context with full secrets against untrusted
+      PR-head code — leave this false (the default) and prefer the `pull_request` event.
+    required: false
+    default: 'false'
+
+outputs:
+  applied:
+    description: 'true when the manifest was actually written (apply, not dry-run, not an idempotent replay).'
+    value: ${{ steps.sync.outputs.applied }}
+  manifest-hash:
+    description: The manifest content fingerprint Dependra used for the idempotency key.
+    value: ${{ steps.sync.outputs.manifest-hash }}
+  diff:
+    description: The rendered import diff (markdown).
+    value: ${{ steps.sync.outputs.diff }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    # No runtime `npm ci`/build: the Action imports a COMMITTED single-file esbuild bundle of the CLI
+    # (vendor/manifest-cli.mjs) with the schema vendored beside it. This runs on offline/locked-down
+    # runners (no npm-registry egress), is faster, and cuts the per-run supply-chain surface. The bundle
+    # is produced by the CLI's release and committed here under vendor/.
+
+    - name: Validate, bundle and sync
+      id: sync
+      shell: bash
+      run: node "${{ github.action_path }}/sync.mjs"
+      env:
+        DEP_MANIFEST: ${{ inputs.manifest }}
+        DEP_URL: ${{ inputs.dependra-url }}
+        DEP_TENANT_ID: ${{ inputs.tenant-id }}
+        DEP_MODE: ${{ inputs.mode }}
+        DEP_API_KEY: ${{ inputs.api-key }}
+        DEP_AUDIENCE: ${{ inputs.audience }}
+        DEP_FAIL_ON: ${{ inputs.fail-on }}
+        DEP_ALLOW_PR_TARGET: ${{ inputs.allow-pull-request-target }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}

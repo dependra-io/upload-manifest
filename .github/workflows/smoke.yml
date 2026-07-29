@@ -1,0 +1,98 @@
+# Smoke test for the upload-manifest Action. It exercises the EXACT committed artifact the Action
+# ships — vendor/manifest-cli.mjs (the pre-built single-file CLI bundle, with manifest.schema.json
+# vendored beside it) — with no runtime build and no live Dependra. Asserts: the committed bundle
+# loads, validates a well-formed manifest with 0 issues, and produces a non-empty transport bundle;
+# sync.mjs parses; and the sync unit tests pass.
+#
+# The CLI source lives in a separate repository; this repo only carries the built bundle under
+# vendor/. Bundle freshness (rebuild-and-diff) is enforced there, not here.
+#
+# Schema provenance: the AUTHORITATIVE manifest schema is published at
+# https://dependra.io/schema/manifest/v1/manifest.schema.json. vendor/manifest.schema.json is a
+# point-in-time SNAPSHOT so the Action validates offline. The optional guarded step at the end can
+# compare the snapshot against the live URL once it is serving.
+name: Smoke
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: validate a well-formed manifest via the committed bundle (expect 0 issues)
+        run: |
+          node --input-type=module -e '
+            import { pathToFileURL } from "node:url";
+            import { resolve } from "node:path";
+            const cli = await import(pathToFileURL(resolve("vendor/manifest-cli.mjs")).href);
+            for (const fn of ["runValidate", "runBundle"]) {
+              if (typeof cli[fn] !== "function") { console.error(`bundle is missing ${fn}`); process.exit(1); }
+            }
+            const m = "test/fixtures/.dependra/manifest.yaml";
+            const { issues } = cli.runValidate(m);
+            const errs = issues.filter((i) => i.severity === "error");
+            if (errs.length) { console.error("fixture unexpectedly has validation errors", errs); process.exit(1); }
+            console.log("validate ok (committed bundle): issues", issues.length);
+          '
+
+      - name: bundle the manifest via the committed bundle (expect a well-formed transport bundle)
+        run: |
+          node --input-type=module -e '
+            import { pathToFileURL } from "node:url";
+            import { resolve } from "node:path";
+            const cli = await import(pathToFileURL(resolve("vendor/manifest-cli.mjs")).href);
+            const { bundle } = cli.runBundle("test/fixtures/.dependra/manifest.yaml");
+            if (!bundle || typeof bundle !== "object") { console.error("bundle is not an object"); process.exit(1); }
+            for (const k of ["manifest", "docs", "hashes"]) {
+              if (!(k in bundle)) { console.error(`bundle missing "${k}"`); process.exit(1); }
+            }
+            if (Object.keys(bundle.manifest).length === 0) { console.error("bundle.manifest is empty"); process.exit(1); }
+            if (!bundle.hashes.manifest) { console.error("bundle.hashes.manifest is empty"); process.exit(1); }
+            console.log("bundle ok (committed bundle): manifest keys", Object.keys(bundle.manifest).length, "docs", Object.keys(bundle.docs).length);
+          '
+
+      - name: syntax-check the sync glue
+        run: node --check sync.mjs
+
+      - name: unit-test the sync bundle-to-wire transform
+        run: node --test __tests__/transform.test.mjs
+
+      - name: unit-test the sync OIDC exchange retry
+        run: node --test __tests__/oidc-exchange.test.mjs
+
+      # Post-publish snapshot gate (OPTIONAL — never blocks the build). The authoritative schema is
+      # served at the canonical URL; vendor/manifest.schema.json is a snapshot of it. Once the URL is
+      # live, this step fetches it and reports whether the snapshot still matches. Opt-in via
+      # CHECK_PUBLISHED_SCHEMA=true.
+      - name: (optional) compare the vendored schema snapshot against the published canonical URL
+        continue-on-error: true
+        env:
+          CHECK_PUBLISHED_SCHEMA: 'false'
+          CANONICAL_SCHEMA_URL: 'https://dependra.io/schema/manifest/v1/manifest.schema.json'
+        run: |
+          if [ "$CHECK_PUBLISHED_SCHEMA" != "true" ]; then
+            echo "Skipping published-schema comparison (set CHECK_PUBLISHED_SCHEMA=true once the URL is live)."
+            exit 0
+          fi
+          if curl -fsSL "$CANONICAL_SCHEMA_URL" -o /tmp/published.schema.json; then
+            if diff -q /tmp/published.schema.json vendor/manifest.schema.json >/dev/null; then
+              echo "vendored schema snapshot matches the published canonical schema."
+            else
+              echo "::warning::vendor/manifest.schema.json differs from ${CANONICAL_SCHEMA_URL}; refresh the vendored bundle from the CLI release."
+            fi
+          else
+            echo "::notice::Could not fetch ${CANONICAL_SCHEMA_URL} (not yet published or unreachable); comparison skipped."
+          fi

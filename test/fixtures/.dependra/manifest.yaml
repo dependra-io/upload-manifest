@@ -1,0 +1,35 @@
+# yaml-language-server: $schema=https://dependra.io/schema/manifest/v1/manifest.schema.json
+#
+# Minimal, self-contained manifest used by the Action's smoke test to prove the
+# committed CLI bundle validates a well-formed manifest with zero issues.
+schemaVersion: "1.0.0"
+
+applications:
+  - id: orders
+    name: Orders Platform
+    description: Revenue-critical order-capture platform.
+    lifecycleState: production
+    criticalityTier: businessCritical
+    dataClassification: pii
+
+components:
+  - id: orders-api
+    name: Orders API
+    application: orders
+    description: Public REST API that accepts and orchestrates customer orders.
+    kind: webAPI
+    runtime: containers
+    networkExposure: publicDirect
+
+dependencies:
+  - from: orders-api
+    to: orders-db
+    type: readsWrites
+    mode: hard
+    required: true
+
+stubs:
+  components:
+    - id: orders-db
+      name: Orders Database
+      application: orders

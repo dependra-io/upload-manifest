@@ -1,0 +1,857 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dependra.io/schema/manifest/v1/manifest.schema.json",
+  "title": "Dependra Architecture Manifest",
+  "description": "The Dependra landscape manifest: the versioned contract a repo (or an AI agent, or your own tooling) emits to describe its architecture. Producers emit this shape; consumers \u2014 the GitHub Action, the validation CLI, and the Dependra ingest API \u2014 map it onto your Dependra landscape. Enum casing is significant: use the exact values listed. \u0060description\u0060 is a short inline one/two-line summary (string only); the long-form README home is \u0060documentation\u0060, which also accepts a { file: \u003Cpath.md\u003E } reference. Unknown/forward fields are tolerated (ignored), never rejected.",
+  "type": "object",
+  "properties": {
+    "applications": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Stable id / technicalName. Lowercase, must start alphanumeric, allows dots/dashes/underscores. Unique within its collection in the merged manifest."
+          },
+          "technicalName": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Explicit technicalName. When present it wins over id (the golden manifest sets both to the same value). Same lowercase/alphanumeric-start rules."
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Human-friendly display name (1..256 chars)."
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "A short, single-/two-line inline SUMMARY (string only). A {file:...} reference is NOT valid here \u2014 that belongs on \u0060documentation\u0060. Kept small by design: the long-form README home is \u0060documentation\u0060."
+          },
+          "documentation": {
+            "description": "The README / long-form home for this entity: either an inline Markdown string, or a { file: \u003Cpath.md\u003E } reference. A file reference is resolved by the CLI/Action into this entity\u0027s documentation before ingest.",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "description": "Path to a Markdown file whose contents become this entity\u0027s documentation."
+                  }
+                },
+                "required": [
+                  "file"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "lifecycleState": {
+            "type": "string",
+            "enum": [
+              "planning",
+              "development",
+              "pilot",
+              "production",
+              "sunset",
+              "retired"
+            ],
+            "description": "Lifecycle state of the application. One of the listed values (exact casing).",
+            "enumDescriptions": [
+              "Being planned; not yet built.",
+              "Under active development.",
+              "In pilot / limited rollout.",
+              "Live in production.",
+              "Being phased out.",
+              "Retired / decommissioned."
+            ]
+          },
+          "criticalityTier": {
+            "type": "string",
+            "enum": [
+              "administrative",
+              "businessOperational",
+              "businessCritical",
+              "missionCritical"
+            ],
+            "description": "Criticality tier: how much business impact when this application is unavailable.",
+            "enumDescriptions": [
+              "Failure has minimal operational impact.",
+              "Failure disrupts day-to-day operations but workarounds exist.",
+              "Failure significantly impacts core business operations.",
+              "Total failure causes immediate, severe impact across the organization."
+            ]
+          },
+          "dataClassification": {
+            "type": "string",
+            "enum": [
+              "public",
+              "internal",
+              "confidential",
+              "restricted",
+              "pii",
+              "phi",
+              "financial"
+            ],
+            "description": "Data classification of the data this application handles.",
+            "enumDescriptions": [
+              "Public data \u2014 no confidentiality requirement.",
+              "Internal-only data.",
+              "Confidential business data.",
+              "Restricted / highly sensitive data.",
+              "Personally identifiable information.",
+              "Protected health information.",
+              "Financial / payment data."
+            ]
+          },
+          "ownerTeam": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Free-text owning team name (display label). For a linked team, see the team field."
+          },
+          "environment": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Deployment environment label (free-text, e.g. production, staging)."
+          },
+          "tags": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "Free-text tags for grouping and filtering."
+          },
+          "team": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional id of the owning team. Forward field \u2014 currently ignored by ingest, reserved for team linkage."
+          },
+          "productSuite": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional id of the owning product suite. Forward field \u2014 currently ignored by ingest, reserved for product-suite linkage."
+          },
+          "notes": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Free-text operator notes. Forward field \u2014 currently ignored by ingest."
+          }
+        },
+        "description": "An application: a logical product/system that owns one or more components. Declaring it here masters it in Dependra."
+      },
+      "description": "Applications you master in this repo. Each declared application becomes an authoritative (mastered) entity in Dependra."
+    },
+    "components": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Stable id / technicalName. Lowercase, must start alphanumeric, allows dots/dashes/underscores. Unique within its collection in the merged manifest."
+          },
+          "technicalName": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Explicit technicalName. When present it wins over id. Same lowercase/alphanumeric-start rules."
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Human-friendly display name (1..256 chars)."
+          },
+          "application": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Id of the owning application in this manifest."
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "A short, single-/two-line inline SUMMARY (string only). A {file:...} reference is NOT valid here \u2014 that belongs on \u0060documentation\u0060. Kept small by design: the long-form README home is \u0060documentation\u0060."
+          },
+          "documentation": {
+            "description": "The README / long-form home for this entity: either an inline Markdown string, or a { file: \u003Cpath.md\u003E } reference. A file reference is resolved by the CLI/Action into this entity\u0027s documentation before ingest.",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "description": "Path to a Markdown file whose contents become this entity\u0027s documentation."
+                  }
+                },
+                "required": [
+                  "file"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "webAPI",
+              "webApp",
+              "database",
+              "queue",
+              "cache",
+              "eventBus",
+              "worker",
+              "storage",
+              "mobileApp",
+              "desktopApp",
+              "scheduledJob",
+              "integration",
+              "identity",
+              "infrastructure",
+              "other"
+            ],
+            "description": "Component kind: what sort of runtime unit this is.",
+            "enumDescriptions": [
+              "A web/HTTP API service.",
+              "A browser-facing web application.",
+              "A database (relational or NoSQL).",
+              "A message queue.",
+              "A cache (e.g. Redis, Memcached).",
+              "An event bus / streaming platform (e.g. Kafka).",
+              "A background worker / processor.",
+              "A blob/object/file storage service.",
+              "A mobile application.",
+              "A desktop application.",
+              "A scheduled/cron job.",
+              "An integration / connector to an external system.",
+              "An identity / authentication component.",
+              "Shared infrastructure (e.g. gateway, load balancer).",
+              "Anything that doesn\u0027t fit the other kinds."
+            ]
+          },
+          "runtime": {
+            "type": "string",
+            "enum": [
+              "containers",
+              "serverless",
+              "vm",
+              "managed",
+              "saas",
+              "bareMetal"
+            ],
+            "description": "Runtime type: how/where this component runs.",
+            "enumDescriptions": [
+              "Runs in containers (e.g. Kubernetes, ECS).",
+              "Runs serverless (e.g. Lambda, Cloud Functions).",
+              "Runs on virtual machines.",
+              "A managed cloud service (provider-operated).",
+              "A third-party SaaS product.",
+              "Runs on bare-metal / physical hardware."
+            ]
+          },
+          "networkExposure": {
+            "type": "string",
+            "enum": [
+              "internal",
+              "public",
+              "publicDirect"
+            ],
+            "description": "Network exposure: how reachable this component is from outside.",
+            "enumDescriptions": [
+              "Reachable only from inside the private network.",
+              "Publicly reachable, typically behind a gateway/edge.",
+              "Directly exposed to the public internet (no gateway in front)."
+            ]
+          },
+          "isExternal": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "True if this component is external / third-party (not built in-house)."
+          },
+          "dataClassification": {
+            "type": "string",
+            "enum": [
+              "public",
+              "internal",
+              "confidential",
+              "restricted",
+              "pii",
+              "phi",
+              "financial"
+            ],
+            "description": "Data classification of the data this component handles.",
+            "enumDescriptions": [
+              "Public data \u2014 no confidentiality requirement.",
+              "Internal-only data.",
+              "Confidential business data.",
+              "Restricted / highly sensitive data.",
+              "Personally identifiable information.",
+              "Protected health information.",
+              "Financial / payment data."
+            ]
+          },
+          "gitRepoUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "URL of the git repository backing this component."
+          },
+          "gitTag": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Git tag / release this manifest snapshot corresponds to."
+          },
+          "gitCommitSha": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Git commit SHA this manifest snapshot corresponds to. Forward field \u2014 currently ignored by ingest."
+          },
+          "tags": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "Free-text tags for grouping and filtering."
+          }
+        },
+        "description": "A component: a deployable/runtime unit (API, database, queue, worker, \u2026) owned by an application. Declaring it here masters it in Dependra."
+      },
+      "description": "Components (deployable/runtime units) you master in this repo. Each declared component becomes an authoritative (mastered) entity, owned by its application."
+    },
+    "dependencies": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Source component id: the component that depends on the target."
+          },
+          "to": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Target component id: the component being depended upon."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "calls",
+              "reads",
+              "writes",
+              "publishes",
+              "consumes",
+              "trafficFlow",
+              "usesIdp",
+              "readsWrites",
+              "pubSub"
+            ],
+            "description": "Dependency type: the nature of the interaction (Calls/Reads/Writes/Publishes/Consumes/\u2026).",
+            "enumDescriptions": [
+              "Synchronous request/response call (e.g. HTTP/gRPC).",
+              "Reads data from the target.",
+              "Writes data to the target.",
+              "Publishes messages/events to the target (e.g. a topic/queue).",
+              "Consumes messages/events from the target.",
+              "Network traffic flow to the target (e.g. through a gateway/proxy).",
+              "Uses the target as an identity provider (authentication).",
+              "Both reads and writes the target (e.g. a primary datastore).",
+              "Publish/subscribe relationship with the target broker/channel."
+            ]
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "hard",
+              "soft",
+              "async",
+              "degraded"
+            ],
+            "description": "Dependency mode: how tightly coupled the source is to the target\u0027s availability.",
+            "enumDescriptions": [
+              "Hard dependency: the source cannot function without the target.",
+              "Soft dependency: the source degrades but keeps working without the target.",
+              "Asynchronous: the source is decoupled in time (queued/eventual).",
+              "Degraded: the source runs in a reduced mode without the target."
+            ]
+          },
+          "required": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "Whether the source hard-requires the target. Defaults to true."
+          },
+          "propagates": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "Whether failure of the target propagates to the source in blast-radius. Defaults to true."
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "A short, single-/two-line inline SUMMARY (string only). A {file:...} reference is NOT valid here \u2014 that belongs on \u0060documentation\u0060. Kept small by design: the long-form README home is \u0060documentation\u0060."
+          },
+          "protocol": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Communication protocol (free-text, e.g. HTTPS, gRPC, AMQP). Security register."
+          },
+          "transportEncryption": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Transport encryption method (free-text, e.g. TLS 1.3, mTLS, none). Security register."
+          },
+          "endpointAuthMethod": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Endpoint authentication method (free-text, e.g. OAuth2, API key, mTLS). Security register."
+          },
+          "channelType": {
+            "type": "string",
+            "enum": [
+              "topic",
+              "queue",
+              "stream"
+            ],
+            "description": "Messaging channel type for pub/sub \u0026 queue dependencies.",
+            "enumDescriptions": [
+              "A pub/sub topic (fan-out to many subscribers).",
+              "A point-to-point message queue.",
+              "An ordered, replayable stream (e.g. Kafka)."
+            ]
+          },
+          "channelName": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Messaging channel / topic / queue name."
+          },
+          "broker": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Id of the broker component for pub/sub dependencies."
+          },
+          "timeoutMs": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Optional timeout for this call, in milliseconds (\u003E= 0)."
+          },
+          "evidence": {
+            "type": "string",
+            "enum": [
+              "declared",
+              "observed",
+              "inferred"
+            ],
+            "description": "How this dependency was established. Defaults to Declared.",
+            "enumDescriptions": [
+              "Declared by hand / by an author.",
+              "Observed from real traffic/telemetry.",
+              "Inferred by automated analysis."
+            ]
+          },
+          "dataClass": {
+            "type": "string",
+            "enum": [
+              "public",
+              "internal",
+              "confidential",
+              "restricted",
+              "pii",
+              "phi",
+              "financial"
+            ],
+            "description": "Data classification carried over this dependency. Part of the data-in-transit security register. Forward field \u2014 currently ignored by ingest.",
+            "enumDescriptions": [
+              "Public data \u2014 no confidentiality requirement.",
+              "Internal-only data.",
+              "Confidential business data.",
+              "Restricted / highly sensitive data.",
+              "Personally identifiable information.",
+              "Protected health information.",
+              "Financial / payment data."
+            ]
+          },
+          "endpoint": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Endpoint reference (URL/path) for this dependency. Part of the data-in-transit security register. Forward field \u2014 currently ignored by ingest."
+          },
+          "source": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "How this edge was produced: \u0027authored\u0027 for hand-/agent-written manifests, \u0027ci-derived\u0027 for edges inferred by automated code analysis. Defaults to authored. Forward field \u2014 currently ignored by ingest."
+          },
+          "confidence": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Optional confidence score (0..1) for machine-derived edges. Forward field \u2014 currently ignored by ingest."
+          }
+        },
+        "description": "A dependency edge: the source component (from) depends on the target component (to). Directional; drives blast-radius propagation and the data-in-transit security register."
+      },
+      "description": "Dependency edges between components: who calls/reads/writes/publishes to whom. Drives blast-radius and the data-in-transit security register."
+    },
+    "capabilities": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Stable id / technicalName. Lowercase, must start alphanumeric, allows dots/dashes/underscores. Unique within its collection in the merged manifest."
+          },
+          "technicalName": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Explicit technicalName. When present it wins over id."
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Human-friendly display name (1..256 chars)."
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 1000,
+            "description": "A short, single-/two-line inline SUMMARY (string only). A {file:...} reference is NOT valid here \u2014 that belongs on \u0060documentation\u0060. Kept small by design: the long-form README home is \u0060documentation\u0060."
+          },
+          "businessDomain": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional id of the owning business domain."
+          },
+          "components": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "Ids of components that realize this capability."
+          }
+        },
+        "description": "A business capability: something the organization does, realized by one or more components. Optionally grouped under a business domain."
+      },
+      "description": "Business capabilities realized by components. Optionally grouped under a business domain."
+    },
+    "businessDomains": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Stable id / technicalName. Lowercase, must start alphanumeric, allows dots/dashes/underscores. Unique within its collection in the merged manifest."
+          },
+          "technicalName": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Explicit technicalName. When present it wins over id."
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Human-friendly display name (1..256 chars)."
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "A short, single-/two-line inline SUMMARY (string only). A {file:...} reference is NOT valid here \u2014 that belongs on \u0060documentation\u0060. Kept small by design: the long-form README home is \u0060documentation\u0060."
+          }
+        },
+        "description": "A business domain: the top-level grouping that capabilities belong to (e.g. Commerce, Payments)."
+      },
+      "description": "Business domains: the top-level grouping capabilities belong to."
+    },
+    "datasets": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Stable id / technicalName. Lowercase, must start alphanumeric, allows dots/dashes/underscores. Unique within its collection in the merged manifest."
+          },
+          "technicalName": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Explicit technicalName. When present it wins over id."
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Human-friendly display name (1..256 chars)."
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 5000,
+            "description": "A short, single-/two-line inline SUMMARY (string only). A {file:...} reference is NOT valid here \u2014 that belongs on \u0060documentation\u0060. Kept small by design: the long-form README home is \u0060documentation\u0060."
+          },
+          "dataClassification": {
+            "type": "string",
+            "enum": [
+              "public",
+              "internal",
+              "confidential",
+              "restricted",
+              "pii",
+              "phi",
+              "financial"
+            ],
+            "description": "Data classification of the data held in this dataset.",
+            "enumDescriptions": [
+              "Public data \u2014 no confidentiality requirement.",
+              "Internal-only data.",
+              "Confidential business data.",
+              "Restricted / highly sensitive data.",
+              "Personally identifiable information.",
+              "Protected health information.",
+              "Financial / payment data."
+            ]
+          },
+          "components": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "Ids of components that read/write this dataset."
+          }
+        },
+        "description": "A dataset: a logical data store read/written by components, carrying a data classification."
+      },
+      "description": "Datasets (logical data stores) read/written by components, with their data classification."
+    },
+    "actors": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Stable id / technicalName. Lowercase, must start alphanumeric, allows dots/dashes/underscores. Unique within its collection in the merged manifest."
+          },
+          "technicalName": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Explicit technicalName. When present it wins over id."
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Human-friendly display name (1..256 chars)."
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "A short, single-/two-line inline SUMMARY (string only). A {file:...} reference is NOT valid here \u2014 that belongs on \u0060documentation\u0060. Kept small by design: the long-form README home is \u0060documentation\u0060."
+          },
+          "segments": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "Ids of segments this actor belongs to."
+          }
+        },
+        "description": "An actor: a person or system that consumes your landscape, optionally grouped into segments."
+      },
+      "description": "Actors: the people/systems that consume your landscape, optionally grouped into segments."
+    },
+    "segments": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Stable id / technicalName. Lowercase, must start alphanumeric, allows dots/dashes/underscores. Unique within its collection in the merged manifest."
+          },
+          "technicalName": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Explicit technicalName. When present it wins over id."
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Human-friendly display name (1..256 chars)."
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "A short, single-/two-line inline SUMMARY (string only). A {file:...} reference is NOT valid here \u2014 that belongs on \u0060documentation\u0060. Kept small by design: the long-form README home is \u0060documentation\u0060."
+          }
+        },
+        "description": "A segment: an audience grouping that actors belong to (e.g. Retail, Enterprise)."
+      },
+      "description": "Segments: audience groupings an actor belongs to."
+    },
+    "stubs": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "applications": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/properties/applications/items",
+            "description": "An application: a logical product/system that owns one or more components. Declaring it here masters it in Dependra."
+          },
+          "description": "Applications this repo references but does not own. Stub semantics; provide only id \u002B name."
+        },
+        "components": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/properties/components/items",
+            "description": "A component: a deployable/runtime unit (API, database, queue, worker, \u2026) owned by an application. Declaring it here masters it in Dependra."
+          },
+          "description": "Components this repo references but does not own. Stub semantics; provide only id \u002B name \u002B application."
+        }
+      },
+      "description": "Applications and components this repo REFERENCES but does NOT own/master (e.g. a service defined in another repo). Everything here is a STUB: created if absent, left untouched if it already exists (never reconciled or deleted), and promoted to mastered when the repo that owns it later declares it under the top-level applications:/components:. Keep stubs minimal \u2014 id \u002B name (\u002B application for a component)."
+    }
+  }
+}

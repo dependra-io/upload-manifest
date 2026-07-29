@@ -1,0 +1,47 @@
+# Example consumer workflow for the Dependra manifest-sync Action.
+#
+# Trigger matrix:
+#   pull_request → dry-run: validates + previews the diff as a PR comment (no writes).
+#   push to default branch / release → apply: validates + writes the landscape to Dependra.
+#   (A push to any non-default branch, or a workflow_dispatch, is also a dry-run — only the default
+#    branch and releases apply.)
+name: Dependra Landscape Sync
+
+on:
+  pull_request:
+    paths:
+      - '.dependra/**'
+  push:
+    branches: [main]
+    paths:
+      - '.dependra/**'
+  release:
+    types: [published]
+
+# Least-privilege: id-token to mint the OIDC token for the exchange, contents to check out,
+# pull-requests to post the dry-run diff comment.
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: dependra-sync-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sync manifest to Dependra
+        uses: dependra-io/upload-manifest@v1
+        with:
+          tenant-id: ${{ vars.DEPENDRA_TENANT_ID }}
+          # dependra-url defaults to https://dependra.io — set it only for a self-hosted Dependra.
+          # manifest defaults to .dependra/manifest.yaml.
+          # mode is auto (PR → dry-run, release/push → apply). Override with `mode: dry-run` to force a preview.
+          # OIDC is used by default. To use a static key instead, supply:
+          #   api-key: ${{ secrets.DEPENDRA_API_KEY }}
+          fail-on: error
