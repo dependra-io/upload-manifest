@@ -126,8 +126,22 @@ runtime** — it works on offline/locked-down runners (no npm-registry egress) w
 smaller per-run supply-chain surface.
 
 **Refreshing the bundle.** The CLI source lives in a separate repository; each CLI release builds the
-bundle (`manifest-cli.mjs` + `manifest.schema.json`) and commits it here under `vendor/`. Keep the
-vendored bundle in step with the published CLI version.
+bundle (`manifest-cli.mjs` + `manifest.schema.json`) and commits it here under `vendor/`. From the CLI
+repo that is `npm run copy-schema && npm run bundle`, then copy `action-vendor/*` into `vendor/` here.
+
+Two CI gates enforce that the copy actually happens, because it once did not: the vendored schema fell
+five weeks and 19 properties behind the backend without a single red build. The schema emits no
+`additionalProperties: false`, so drift never *rejects* a valid manifest — it just silently validates
+nothing about the newer fields, which is why it needs a gate rather than a warning.
+
+- `vendor/manifest.schema.json` is compared (semantically, key-order- and line-ending-insensitive)
+  against the authoritative schema the backend generates and serves at
+  `https://dependra.io/schema/manifest/v1/manifest.schema.json`.
+- `vendor/manifest-cli.mjs` carries a `// dependra-cli-version:` banner stamp, compared against the
+  latest `dependra` on npm.
+
+Either check degrades to a notice when the URL or the registry is unreachable — availability must not
+fail this repo's CI — but a reachable source that disagrees is a build failure.
 
 Tagging strategy: publish immutable **`v1.x.y`** release tags and a **moving `v1`** tag that
 maintainers advance to each new `v1.x.y` (see [Versioning](#versioning)).

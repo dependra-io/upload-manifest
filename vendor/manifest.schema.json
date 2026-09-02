@@ -297,10 +297,138 @@
             ],
             "description": "Network exposure: how reachable this component is from outside.",
             "enumDescriptions": [
-              "Reachable only from inside the private network.",
-              "Publicly reachable, typically behind a gateway/edge.",
-              "Directly exposed to the public internet (no gateway in front)."
+              "Cannot be reached from the Internet. Reachable only from other zones with connectivity.",
+              "Accepts internet traffic via the zone\u0027s infrastructure components (firewalls, gateways, proxies). No explicit dependency edges needed \u2014 the path is inferred from zone connectivity.",
+              "Has its own external IP addresses and bypasses any zone-defined infrastructure nodes."
             ]
+          },
+          "egressMode": {
+            "enum": [
+              "default",
+              "direct",
+              "none",
+              null
+            ],
+            "description": "Egress mode: how this component reaches out to the network."
+          },
+          "protectionMechanisms": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "Security protection mechanisms at this component\u0027s network boundary \u2014 either protecting it (in front of it) OR provided by this component when it is itself a proxy/gateway/WAF. Common values: WAF, RateLimiting, mTLS, ApiKey, IpAllowlist, DDoSProtection, GeoRestriction, BotProtection, TLSTermination (terminates inbound TLS), TLSReencryption (terminates then re-encrypts to the origin \u2014 \u0027full SSL\u0027), mTLSToOrigin (presents a client cert to the origin)."
+          },
+          "statusPageUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Public status/health page URL for this component, if any."
+          },
+          "endpoints": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Endpoint name, unique within the component (e.g. \u0022public-api\u0022, \u0022admin\u0022, \u0022grpc\u0022)."
+                },
+                "protocol": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Protocol exposed (e.g. HTTPS, gRPC, AMQP, PostgreSQL)."
+                },
+                "port": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "description": "Port the endpoint listens on, if fixed."
+                },
+                "transportEncryption": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Minimum transport encryption the endpoint enforces (e.g. \u0022TLS1.3\u0022, \u0022mTLS\u0022, \u0022None\u0022)."
+                },
+                "authMethods": {
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "method": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "description": "Auth method (e.g. \u0022OAuth2\u0022, \u0022JWT\u0022, \u0022ApiKey\u0022, \u0022BasicAuth\u0022, \u0022mTLS\u0022, \u0022None\u0022)."
+                      },
+                      "authProvider": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "description": "Optional id of an identity component that provides this auth (e.g. your hosted IdP)."
+                      }
+                    },
+                    "description": "An authentication method an endpoint accepts."
+                  },
+                  "description": "Authentication methods this endpoint accepts."
+                }
+              },
+              "description": "A network endpoint a component exposes. Its declared posture (protocol, port, transport encryption, accepted auth methods) is the exposed attack surface \u2014 captured independently of whether any dependency consumes it."
+            },
+            "description": "Network endpoints this component EXPOSES \u2014 its attack surface. An endpoint is inventoried whether or not any dependency consumes it, so its declared security posture (transport encryption, accepted auth methods) is captured independently of who connects."
+          },
+          "technologies": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "object",
+              "properties": {
+                "technology": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Id of the technology (declared in top-level \u0060technologies:\u0060 or known to the tenant)."
+                },
+                "version": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Version this component uses (e.g. \u00228.0\u0022, \u00224.5\u0022, \u002218.3\u0022)."
+                },
+                "current": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ],
+                  "description": "Whether this is the component\u0027s current version of the technology. Defaults to true."
+                }
+              },
+              "description": "Links a component to a technology it uses, at a specific version."
+            },
+            "description": "Technologies this component uses, with the per-component version. The same shared technology (e.g. .NET) can appear on many components at different versions \u2014 multi-targeting is normal. Reference a technology declared in the top-level \u0060technologies:\u0060 block (or already known to the tenant)."
           },
           "isExternal": {
             "type": [
@@ -471,6 +599,13 @@
             ],
             "description": "Endpoint authentication method (free-text, e.g. OAuth2, API key, mTLS). Security register."
           },
+          "targetEndpoint": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Name of the specific endpoint on the TARGET component this edge connects to (must match one of that component\u0027s declared endpoints). Binds the edge to that exposed endpoint\u0027s auth register \u2014 pair with endpointAuthMethod."
+          },
           "channelType": {
             "type": "string",
             "enum": [
@@ -562,6 +697,60 @@
               "null"
             ],
             "description": "Optional confidence score (0..1) for machine-derived edges. Forward field \u2014 currently ignored by ingest."
+          },
+          "datasets": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "object",
+              "properties": {
+                "dataset": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Dataset id (a declared dataset\u0027s id) that flows over this edge."
+                },
+                "sourceRole": {
+                  "enum": [
+                    "producer",
+                    "consumer",
+                    "processor",
+                    "store",
+                    null
+                  ],
+                  "description": "Role of the SOURCE component (the edge\u0027s \u0060from\u0060) with respect to this dataset: Producer/Consumer/Processor/Store. A Producer\u2192Consumer pairing is what makes lineage show FLOW direction. Defaults to Consumer."
+                },
+                "targetRole": {
+                  "enum": [
+                    "producer",
+                    "consumer",
+                    "processor",
+                    "store",
+                    null
+                  ],
+                  "description": "Role of the TARGET component (the edge\u0027s \u0060to\u0060) with respect to this dataset: Producer/Consumer/Processor/Store. Defaults to Consumer."
+                },
+                "sourceIsSourceOfTruth": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ],
+                  "description": "Whether the SOURCE component is the system of record (source of truth) for this dataset on this edge."
+                },
+                "targetIsSourceOfTruth": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ],
+                  "description": "Whether the TARGET component is the system of record (source of truth) for this dataset on this edge."
+                }
+              },
+              "description": "A dataset that flows across one dependency edge (data lineage). Identify the dataset by id; the edge is the parent dependency\u0027s from/to/type."
+            },
+            "description": "Datasets that FLOW across this edge \u2014 the data lineage. Each entry names a dataset and the role of the SOURCE and TARGET components with respect to it (Producer/Consumer/Processor/Store). This is what turns a lineage diagram from \u0027which components touch the dataset\u0027 into a directional flow \u0027producer \u2192 dataset \u2192 consumer\u0027. Prefer this over only listing a dataset\u0027s components: the edge is where the flow lives."
           }
         },
         "description": "A dependency edge: the source component (from) depends on the target component (to). Directional; drives blast-radius propagation and the data-in-transit security register."
@@ -733,6 +922,50 @@
         "description": "A dataset: a logical data store read/written by components, carrying a data classification."
       },
       "description": "Datasets (logical data stores) read/written by components, with their data classification."
+    },
+    "technologies": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Stable id / technicalName (e.g. \u0022dotnet\u0022, \u0022postgresql\u0022, \u0022react\u0022)."
+          },
+          "technicalName": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Explicit technicalName. When present it wins over id."
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Human-friendly display name (e.g. \u0022.NET\u0022, \u0022PostgreSQL\u0022)."
+          },
+          "category": {
+            "enum": [
+              "techniques",
+              "tools",
+              "platforms",
+              "languagesAndFrameworks",
+              null
+            ],
+            "description": "Radar category: which quadrant this technology sits in."
+          }
+        },
+        "description": "A technology in use across the estate \u2014 a FACT (identity \u002B category). Radar governance (recommendation, EOL target) is set by EA/CIO in Dependra and is not declarable in a manifest."
+      },
+      "description": "Technologies (languages, frameworks, platforms, tools) used across the estate \u2014 identity \u002B category ONLY. This declares the FACT that a technology exists and is used; per-component versions live on each component\u0027s \u0060technologies\u0060 links. Radar GOVERNANCE (adopt/hold/retire recommendations, EOL target dates) is an EA/CIO decision made in Dependra and is NOT declarable here."
     },
     "actors": {
       "type": [
