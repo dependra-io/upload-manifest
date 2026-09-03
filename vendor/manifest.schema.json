@@ -118,12 +118,44 @@
               "Financial / payment data."
             ]
           },
-          "ownerTeam": {
+          "sourcing": {
+            "type": "string",
+            "enum": [
+              "developed",
+              "openSource",
+              "contracted",
+              "vendored"
+            ],
+            "description": "Where the code came from: developed (in-house), openSource, contracted (built to order by an external party), or vendored (licensed/subscribed product). Orthogonal to modificationLevel.",
+            "enumDescriptions": [
+              "Built and maintained in-house.",
+              "Externally sourced code \u2014 typically open source \u2014 that we run and maintain ourselves.",
+              "Built to order for us by an external party.",
+              "Licensed or subscribed as a product from a supplier."
+            ]
+          },
+          "modificationLevel": {
+            "type": "string",
+            "enum": [
+              "offTheShelf",
+              "configured",
+              "customized",
+              "forked"
+            ],
+            "description": "How much the code has been changed since it was sourced: offTheShelf (used as shipped), configured (supported configuration only), customized (altered beyond supported configuration), or forked (source diverged from upstream). Orthogonal to sourcing.",
+            "enumDescriptions": [
+              "Used as shipped.",
+              "Adjusted through supported configuration only.",
+              "Extended or altered beyond supported configuration.",
+              "Source diverged from upstream and maintained separately."
+            ]
+          },
+          "vendor": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Free-text owning team name (display label). For a linked team, see the team field."
+            "description": "Vendor display name (e.g. \u0027Salesforce\u0027, \u0027Microsoft\u0027). Resolve-or-create by name (case-insensitive, per tenant) against the vendor registry \u2014 unlike technicalName references elsewhere in the manifest, this is a plain display name."
           },
           "environment": {
             "type": [

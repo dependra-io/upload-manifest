@@ -1,5 +1,5 @@
 // GENERATED — do not edit; run `npm run bundle`. Single-file esbuild bundle of src/action.ts.
-// dependra-cli-version: 1.7.0
+// dependra-cli-version: 1.8.0
 // Regenerate with `npm run bundle`. On release, copy action-vendor/* into the upload-manifest repo's vendor/.
 import { createRequire as __manifestCliCreateRequire } from 'node:module';
 const require = __manifestCliCreateRequire(import.meta.url);
