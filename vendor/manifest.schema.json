@@ -5,6 +5,13 @@
   "description": "The Dependra landscape manifest: the versioned contract a repo (or an AI agent, or your own tooling) emits to describe its architecture. Producers emit this shape; consumers \u2014 the GitHub Action, the validation CLI, and the Dependra ingest API \u2014 map it onto your Dependra landscape. Enum casing is significant: use the exact values listed. \u0060description\u0060 is a short inline one/two-line summary (string only); the long-form README home is \u0060documentation\u0060, which also accepts a { file: \u003Cpath.md\u003E } reference. Unknown/forward fields are tolerated (ignored), never rejected.",
   "type": "object",
   "properties": {
+    "schemaVersion": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "The manifest dialect version this document is written against, e.g. \u00221.0.0\u0022. Informational: it is recorded for forward compatibility and is not currently validated on import."
+    },
     "applications": {
       "type": [
         "array",
